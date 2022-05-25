@@ -18,6 +18,7 @@ async function run() {
     try {
         await client.connect();
         const toolsCollection = client.db('hardware-zone').collection('tools');
+        const bookingCollection = client.db('hardware-zone').collection('booking');
 
         // get all tools
         app.get('/tools', async (req, res) => {
@@ -36,19 +37,26 @@ async function run() {
         });
 
         // available stock update
-        /* app.patch('/tools/:id', async (req, res) => {
+        app.patch('/tools/:id', async (req, res) => {
             const id = req.params.id;
-            const available = req.body;
+            const updateStock = req.body;
             const filter = { _id: ObjectId(id) };
             const updateDoc = {
                 $set: {
-                    available: available,
+                    available: updateStock.available,
                 }
             };
-            const updateStock = await toolsCollection.updateOne(filter, updateDoc);
-            res.send(updateStock);
-            console.log(updateDoc)
-        }) */
+            const availableStock = await toolsCollection.updateOne(filter, updateDoc);
+            res.send(availableStock);
+        });
+
+        // set order details
+        app.post('/booking', async (req, res) => {
+            const order = req.body.bookingOrder;
+            const result = await bookingCollection.insertOne(order);
+        })
+
+
 
     }
     finally {
