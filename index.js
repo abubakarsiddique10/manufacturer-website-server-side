@@ -18,8 +18,11 @@ async function run() {
     try {
         await client.connect();
         const toolsCollection = client.db('hardware-zone').collection('tools');
+
         const bookingCollection = client.db('hardware-zone').collection('booking');
+
         const reviewCollection = client.db('hardware-zone').collection('reviews');
+
         const profileCollection = client.db('hardware-zone').collection('profiles');
 
         // add tool product
@@ -74,7 +77,7 @@ async function run() {
             const result = await bookingCollection.insertOne(order);
         })
 
-        // get booked user orders
+        // booked user orders
         app.get('/booking', async (req, res) => {
             const email = req.query.email;
             const filter = { email: email };
@@ -89,6 +92,36 @@ async function run() {
             const filter = { _id: ObjectId(id) };
             const result = await bookingCollection.findOne(filter);
             res.send(result)
+        })
+
+        // get purchase all orders
+        app.get('/booked', async (req, res) => {
+            const query = {};
+            const cursor = bookingCollection.find(query);
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        // set admin role
+        app.put('/booked', async (req, res) => {
+            const email = req.query.email;
+            const filter = { email: email };
+            const updateDoc = {
+                $set: {
+                    role: 'admin',
+                }
+            }
+            const result = await bookingCollection.updateOne(filter, updateDoc)
+            res.send(result)
+        })
+
+        // check admin
+        app.get('/booked/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const user = await bookingCollection.findOne(filter);
+            const isAdmin = user.role === "admin";
+            res.send({ admin: isAdmin })
         })
 
         // get users review
@@ -133,6 +166,13 @@ async function run() {
             res.send(result)
         })
 
+        // cancel order 
+        app.delete('/booked/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await bookingCollection.deleteOne(filter);
+            res.send(result);
+        })
     }
     finally {
 
