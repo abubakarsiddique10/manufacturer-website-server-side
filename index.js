@@ -19,13 +19,31 @@ async function run() {
         await client.connect();
         const toolsCollection = client.db('hardware-zone').collection('tools');
         const bookingCollection = client.db('hardware-zone').collection('booking');
+        const reviewCollection = client.db('hardware-zone').collection('reviews');
+        const profileCollection = client.db('hardware-zone').collection('profiles');
 
-        // get all tools
+        // add tool product
+        app.post('/tools', async (req, res) => {
+            const product = req.body.product;
+            const result = await toolsCollection.insertOne(product);
+            res.send(result)
+            console.log(result)
+        })
+
+        // get all tools products
         app.get('/tools', async (req, res) => {
             const query = {};
             const cursor = toolsCollection.find(query);
             const result = await cursor.toArray();
             res.send(result)
+        })
+
+        // delete product
+        app.delete('/tools/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await toolsCollection.deleteOne(filter);
+            res.send(result);
         })
 
         // get one tool
@@ -73,6 +91,47 @@ async function run() {
             res.send(result)
         })
 
+        // get users review
+        app.post('/reviews', async (req, res) => {
+            const review = req.body.review;
+            const result = await reviewCollection.insertOne(review);
+            res.send(result)
+        });
+
+        // find users reviews
+        app.get('/reviews', async (req, res) => {
+            const query = {};
+            const cursor = reviewCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        // get users profile
+        app.put('/profiles', async (req, res) => {
+            const email = req.query.email;
+            const filter = { email: email }
+            const profile = req.body.profile;
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    phone: profile.phone,
+                    image: profile.image,
+                    linkdin: profile.linkdin,
+                    location: profile.location,
+                    education: profile.education,
+                }
+            }
+            const result = await profileCollection.updateOne(filter, updateDoc, options);
+            res.send(result)
+        })
+
+        // find user profile
+        app.get('/profiles', async (req, res) => {
+            const email = req.query.email;
+            const filter = { email: email }
+            const result = await profileCollection.findOne(filter);
+            res.send(result)
+        })
 
     }
     finally {
