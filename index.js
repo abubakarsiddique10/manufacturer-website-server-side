@@ -3,7 +3,7 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 // middleware
 app.use(cors());
 app.use(express.json());
@@ -24,6 +24,22 @@ async function run() {
         const reviewCollection = client.db('hardware-zone').collection('reviews');
 
         const profileCollection = client.db('hardware-zone').collection('profiles');
+
+        const paymentCollection = client.db('hardware-zone').collection('payments');
+
+        //payment method
+        app.post('/create-payment-intent', async (req, res) => {
+            const service = req.body;
+            const price = service.price;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ["card"]
+            })
+            /*  res.send({ clientSecret: paymentIntent.client_secret }) */
+            res.send({ clientSecret: paymentIntent.client_secret })
+        })
 
         // add tool product
         app.post('/tools', async (req, res) => {
@@ -172,6 +188,21 @@ async function run() {
             const filter = { _id: ObjectId(id) };
             const result = await bookingCollection.deleteOne(filter);
             res.send(result);
+        });
+
+        // update paid user
+        app.patch('/booked/:id', async (req, res) => {
+            const id = req.params.id;
+            const paymentDetails = req.body.payment;
+            const filter = { _id: ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    paid: true
+                }
+            }
+            const updateBooked = await bookingCollection.updateOne(filter, updateDoc);
+            res.send(updateBooked);
+            const seveDetails = await paymentCollection.insertOne(paymentDetails);
         })
     }
     finally {
