@@ -1,12 +1,30 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 // middleware
 app.use(cors());
 app.use(express.json());
+
+
+
+function varifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({ message: 'unauthorized access' })
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        if (err) {
+            return res.status(403).send({ message: 'forbidden access' });
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
 
 
 
@@ -30,6 +48,16 @@ async function run() {
         const newproductsCollection = client.db('hardware-zone').collection('new_products');
 
 
+        // authentication
+
+        app.post('/login', async (req, res) => {
+            const email = req.body.email;
+            const accessToken = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, {
+                expiresIn: '15d'
+            });
+            res.send({ accessToken });
+        })
+
         //payment method
         app.post('/create-payment-intent', async (req, res) => {
             const service = req.body;
@@ -40,7 +68,6 @@ async function run() {
                 currency: "usd",
                 payment_method_types: ["card"]
             })
-            /*  res.send({ clientSecret: paymentIntent.client_secret }) */
             res.send({ clientSecret: paymentIntent.client_secret })
         })
 
@@ -49,7 +76,6 @@ async function run() {
             const product = req.body.product;
             const result = await toolsCollection.insertOne(product);
             res.send(result)
-            console.log(result)
         })
 
         // get all tools products
@@ -97,7 +123,7 @@ async function run() {
         })
 
         // booked user orders
-        app.get('/booking', async (req, res) => {
+        app.get('/booking', varifyJWT, async (req, res) => {
             const email = req.query.email;
             const filter = { email: email };
             const user = bookingCollection.find(filter);
@@ -137,10 +163,8 @@ async function run() {
         // check admin
         app.get('/booked/:email', async (req, res) => {
             const email = req.params.email;
-            console.log(email)
             const filter = { email: email };
             const user = await bookingCollection.findOne(filter);
-            console.log(user)
             const isAdmin = user?.role == "admin";
             res.send({ admin: isAdmin })
         })
