@@ -27,6 +27,9 @@ async function run() {
 
         const paymentCollection = client.db('hardware-zone').collection('payments');
 
+        const newproductsCollection = client.db('hardware-zone').collection('new_products');
+
+
         //payment method
         app.post('/create-payment-intent', async (req, res) => {
             const service = req.body;
@@ -134,9 +137,11 @@ async function run() {
         // check admin
         app.get('/booked/:email', async (req, res) => {
             const email = req.params.email;
+            console.log(email)
             const filter = { email: email };
             const user = await bookingCollection.findOne(filter);
-            const isAdmin = user.role === "admin";
+            console.log(user)
+            const isAdmin = user?.role == "admin";
             res.send({ admin: isAdmin })
         })
 
@@ -203,6 +208,14 @@ async function run() {
             const updateBooked = await bookingCollection.updateOne(filter, updateDoc);
             res.send(updateBooked);
             const seveDetails = await paymentCollection.insertOne(paymentDetails);
+        });
+
+        // get new products
+        app.get('/newproducts', async (req, res) => {
+            const query = {};
+            const cursor = newproductsCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result)
         })
     }
     finally {
