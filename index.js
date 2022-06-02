@@ -48,7 +48,7 @@ async function run() {
 
         const newproductsCollection = client.db('hardware-zone').collection('new_products');
 
-        // authentication
+        // authentications
 
         /* app.post('/login', async (req, res) => {
             const email = req.body.email;
