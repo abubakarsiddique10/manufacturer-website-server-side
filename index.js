@@ -58,7 +58,7 @@ async function run() {
             res.send({ accessToken });
         }) */
 
-        //payment method
+        // payment method
         app.post('/create-payment-intent', async (req, res) => {
             const service = req.body;
             const price = service.price;
