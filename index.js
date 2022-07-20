@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const jwt = require('jsonwebtoken');
+var jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -11,24 +11,23 @@ app.use(cors());
 app.use(express.json());
 
 
-/* 
+
 function varifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-        return res.status(401).send({ message: 'unauthorized access' })
+        return res.status(403).send({ message: "unahorized" })
     }
     const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decode) => {
         if (err) {
-            return res.status(403).send({ message: 'forbidden access' });
+            return res.status(403).send({ message: "forbiden" })
         }
-        req.decoded = decoded;
+        req.decode = decode;
         next();
     })
-} */
 
 
-
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1gdp7.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -50,13 +49,11 @@ async function run() {
 
         // authentications
 
-        /* app.post('/login', async (req, res) => {
+        app.post('/login', (req, res) => {
             const email = req.body.email;
-            const accessToken = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, {
-                expiresIn: '15d'
-            });
-            res.send({ accessToken });
-        }) */
+            const accessToken = jwt.sign({ email }, process.env.ACCESS_TOKEN);
+            res.send({ accessToken })
+        })
 
         // payment method
         app.post('/create-payment-intent', async (req, res) => {
@@ -123,12 +120,14 @@ async function run() {
         })
 
         // booked user orders
-        app.get('/booking', async (req, res) => {
+        app.get('/booking', varifyJWT, async (req, res) => {
             const email = req.query.email;
-            const filter = { email: email };
-            const user = bookingCollection.find(filter);
-            const result = await user.toArray();
-            res.send(result);
+            if (email === req.decode.email) {
+                const filter = { email: email };
+                const user = bookingCollection.find(filter);
+                const result = await user.toArray();
+                res.send(result)
+            }
         });
 
         // get user order
@@ -165,7 +164,7 @@ async function run() {
             const email = req.params.email;
             const filter = { email: email };
             const user = await bookingCollection.findOne(filter);
-            const isAdmin = user?.role == "admin";
+            const isAdmin = user.role == "admin";
             res.send({ admin: isAdmin })
         })
 
