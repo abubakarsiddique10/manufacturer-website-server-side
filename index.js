@@ -48,7 +48,6 @@ async function run() {
         const newproductsCollection = client.db('hardware-zone').collection('new_products');
 
         // authentications
-
         app.post('/login', (req, res) => {
             const email = req.body.email;
             const accessToken = jwt.sign({ email }, process.env.ACCESS_TOKEN);
